@@ -8,7 +8,9 @@ export interface IBooking {
   updatedAt?: Date;
 }
 
-export interface BookingDocument extends IBooking, Document {}
+export interface BookingDocument extends IBooking, Document {
+  _reserved?: boolean;
+}
 
 const BookingSchema = new Schema<BookingDocument>(
   {
@@ -50,15 +52,19 @@ BookingSchema.pre<BookingDocument>('save', async function () {
   }
 
   // Mark that a reservation was performed so we can rollback on error
-  (this as any)._reserved = true as unknown as boolean;
+  this._reserved = true;
 });
 
 // Success case: reservation already applied atomically; no post-save increment needed
 
 // If save fails after the reservation (e.g., unique index violation), roll back the increment
-BookingSchema.post('save', function (error: any, doc: any, next: any) {
+BookingSchema.post('save', function (
+  error: Error | null,
+  doc: BookingDocument,
+  next: (err?: Error | null) => void
+) {
   const bookingDoc = doc as BookingDocument | undefined;
-  const reserved = bookingDoc ? (bookingDoc as any)._reserved : (this as any)._reserved;
+  const reserved = bookingDoc?._reserved ?? false;
   if (reserved && bookingDoc) {
     EventModel.findByIdAndUpdate(bookingDoc.eventId, { $inc: { bookingsCount: -1 } })
       .then(() => next(error))
