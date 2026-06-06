@@ -90,6 +90,13 @@ function normalizeTime(input: string): string {
   return `${match[1]}:${match[2]}`;
 }
 
+EventSchema.pre<EventDocument>('validate', function () {
+  // Normalize time early so validators (regex) accept AM/PM inputs
+  if (this.time) {
+    this.time = normalizeTime(this.time);
+  }
+});
+
 EventSchema.pre<EventDocument>('save', async function () {
   if (this.isModified('title')) {
     const base = slugify(this.title);
@@ -103,7 +110,6 @@ EventSchema.pre<EventDocument>('save', async function () {
     this.slug = candidate;
   }
   this.date = normalizeDate(this.date);
-  this.time = normalizeTime(this.time);
 });
 
 const EventModel = (mongoose.models.Event as Model<EventDocument>) || 
