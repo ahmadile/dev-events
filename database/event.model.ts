@@ -55,7 +55,12 @@ const EventSchema = new Schema<EventDocument>(
 
 // Indexes performants
 EventSchema.index({ slug: 1 }, { unique: true });
-EventSchema.index({ date: 1, mode: 1 }); // Pour filtrage liste événements
+EventSchema.index({ date: 1, mode: 1 }); /**
+ * Produces a lowercase, URL-safe slug from the given string.
+ *
+ * @param input - The source string to convert into a slug
+ * @returns The slug containing only lowercase ASCII letters, digits, and hyphens with whitespace collapsed and consecutive hyphens merged
+ */
 
 function slugify(input: string): string {
   return input
@@ -67,13 +72,28 @@ function slugify(input: string): string {
     .replace(/-+/g, '-');
 }
 
-// ✅ FIX: Normalisation UTC stricte pour éviter les décalages
+/**
+ * Normalize a date string to the UTC ISO date portion (YYYY-MM-DD).
+ *
+ * @param input - A date string representing a calendar date (e.g., "YYYY-MM-DD"). The function treats the input as UTC midnight.
+ * @returns The normalized date in `YYYY-MM-DD` format.
+ * @throws Error if `input` cannot be parsed as a valid date.
+ */
 function normalizeDate(input: string): string {
   const parsed = new Date(input + 'T00:00:00Z');
   if (Number.isNaN(parsed.getTime())) throw new Error(`Date invalide: ${input}`);
   return parsed.toISOString().slice(0, 10);
 }
 
+/**
+ * Normalize a time string to 24-hour `HH:MM` format.
+ *
+ * Accepts either `HH:MM` (24-hour) or `H:MM am/pm` (case-insensitive) and returns the normalized `HH:MM` string.
+ *
+ * @param input - Time string in `HH:MM` 24-hour format or `H:MM am/pm` (e.g., `9:05 pm`, `21:05`)
+ * @returns The time normalized to `HH:MM` (24-hour) format
+ * @throws Error if `input` does not match an expected time format
+ */
 function normalizeTime(input: string): string {
   const trimmed = input.trim();
   const ampmMatch = trimmed.match(/^(\d{1,2}):(\d{2})\s*(am|pm)$/i);

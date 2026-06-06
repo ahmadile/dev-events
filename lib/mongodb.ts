@@ -29,7 +29,12 @@ if (!globalThis.mongooseCache) {
 }
 
 /**
- * Connexion MongoDB avec caching HMR + options production-ready
+ * Establishes and returns a cached Mongoose connection to MongoDB, using a global cache to avoid repeated connections during hot-reloads.
+ *
+ * The function reuses a previously resolved connection when available, and ensures only a single in-flight connection attempt is active by caching the promise. If a connection attempt fails, the cached promise is cleared to allow retries.
+ *
+ * @returns The connected `mongoose` instance
+ * @throws The original error thrown by Mongoose when the connection attempt fails
  */
 export async function connectDB(): Promise<mongoose.Mongoose> {
   if (cached.conn) {
